@@ -1,105 +1,198 @@
 @echo off
 setlocal enabledelayedexpansion
 
+@REM ::Actual directory
 set CURR_DIR=%CD%
+@REM ::Actual directory with '\\' instead '\'
 set CURR_DIR=!CURR_DIR:\=\\!
 
+@REM ::'dart-sdk' path
 set DART_SDK_DIR=dart-sdk
-set DART_BIN_DIR=%DART_SDK_DIR%\bin
-set DART_EXE=%DART_BIN_DIR%\dart.exe
+@REM ::'dart.exe' executable path
+set DART_EXE=%DART_SDK_DIR%\bin\dart.exe
 
-set VSCODE_DIR=vscode
+@REM ::Check dependencies(
 
-:Validate_Archives
-set /p ="Searching for 'dart-sdk'... " <nul
+    :Validate_Archives
 
-if not exist "%DART_SDK_DIR%" (
-    echo Dart SDK not found.
-    echo Installing 'dartsdk-windows-x64-release.zip'...
+    @REM ::Check 'dart-sdk'(
+
+        set /p ="Searching for 'dart-sdk'... | " <nul
+
+        if not exist %DART_SDK_DIR% (
+
+            @REM ::'dart-sdk' not founded message        
+            echo 'dart-sdk' Not found.
+
+            @REM ::Downloading 'dart-sdk.zip'(
+                echo Installing 'dartsdk-windows-x64-release.zip'...
+                echo.
+                curl -# -L -O https://storage.googleapis.com/dart-archive/channels/stable/release/3.5.4/sdk/dartsdk-windows-x64-release.zip
+                cls
+            @REM ::)
+
+            @REM ::Extracting 'dart.zip'(
+                echo Extracting 'dartsdk-windows-x64-release.zip'...
+                echo.
+                powershell -Command "Expand-Archive -Path 'dartsdk-windows-x64-release.zip' -DestinationPath '%CD%'"
+                cls
+            @REM ::)
+
+            @REM ::Removing 'dart.zip'(
+                echo Removing 'dartsdk-windows-x64-release.zip'...
+                del /q /s dartsdk-windows-x64-release.zip > nul
+                cls
+            @REM ::)
+            
+            @REM ::Check archives again
+            goto Validate_Archives
+
+        ) else (
+
+            @REM ::Dart-sdk is ok
+            echo 'dart-sdk' Found.
+
+        )
+
+    @REM ::)
+
+@REM ::)
+
+echo.
+
+@REM ::Input for project name
+set /p PROJECT_NAME="Insert your project name: "
+echo.
+
+@REM ::Convert project name to lowercase(
+
+    set _UCASE=ABCDEFGHIJKLMNOPQRSTUVWXYZ
+    set _LCASE=abcdefghijklmnopqrstuvwxyz
+
+    for /l %%a in (0,1,25) do (
+        call set _FROM=%%_UCASE:~%%a,1%%
+        call set _TO=%%_LCASE:~%%a,1%%
+        call set PROJECT_NAME=%%PROJECT_NAME:!_FROM!=!_TO!%%
+    )
+
+@REM ::)
+
+
+@REM ::Project path
+set PROJECT_DIR=projects\%PROJECT_NAME%
+
+@REM ::.vscode path
+set VSCODE_DIR=%PROJECT_DIR%\.vscode
+
+
+@REM ::Create folder 'projects' if it doesnt exist(
+
+    set /p ="Searching for 'projects' folder... | " <nul
+
+    if not exist projects (
+        
+        echo 'projects' not found.
+
+        set /p ="Creating 'projects' folder... | " <nul
+        mkdir projects
+        echo 'projects' Created.
+
+    ) else (
+
+        echo 'projects' Found.
+
+    )
+
+@REM ::)
+
+@REM ::Creating project using 'dart create'(
+
+    set /p ="Creating project '%PROJECT_NAME%'... | " <nul
+
+    %DART_EXE% create %PROJECT_DIR% > nul
+
+    echo Projectd created.
+
+@REM ::)
+
+@REM ::Configuring project(
+
+    set /p ="Configuring project '%PROJECT_NAME%'... | " <nul
+
+    @REM ::Removing directories(
+
+        rmdir /q /s %PROJECT_DIR%\test
+        rmdir /q /s %PROJECT_DIR%\lib
+        rmdir /q /s %PROJECT_DIR%\bin
+
+    @REM ::)
+
+    del /q /s %PROJECT_DIR%\README.md > nul
+    del /q /s %PROJECT_DIR%\CHANGELOG.md > nul
+    del /q /s %PROJECT_DIR%\pubspec.lock > nul
+    del /q /s %PROJECT_DIR%\.gitignore > nul
+
+    mkdir %PROJECT_DIR%\bin
+
+    echo void main() {>> %PROJECT_DIR%\bin\%PROJECT_NAME%.dart
+    echo     print('Hello, Dart!');>> %PROJECT_DIR%\bin\%PROJECT_NAME%.dart
+    echo }>> %PROJECT_DIR%\bin\%PROJECT_NAME%.dart
+
+    echo Project configured.
+
+@REM ::)
+
+echo.
+
+@REM ::VS Code files creation(
+
+    echo Configuring VS Code...
+
     echo.
-    curl -# -L -O https://storage.googleapis.com/dart-archive/channels/stable/release/3.5.4/sdk/dartsdk-windows-x64-release.zip
-    cls
 
-    echo Extracting 'dartsdk-windows-x64-release.zip'...
+    @REM ::.vscode folder(
+
+        set /p ="Creating folder '.vscode'... " <nul
+        mkdir %VSCODE_DIR%
+        echo Folder created.
+
+    @REM ::)
+
+    @REM ::settings.json(
+
+        set /p ="Creating file 'settings.json'... " <nul
+        echo {>> %VSCODE_DIR%\settings.json
+        echo    "dart.cliConsole": "externalTerminal",>> %VSCODE_DIR%\settings.json
+        echo    "dart.sdkPath": "%CURR_DIR%\\%DART_SDK_DIR%">> %VSCODE_DIR%\settings.json
+        echo }>> %VSCODE_DIR%\settings.json
+        echo File created.
+
+    @REM ::)
+
+    @REM ::extensions.json(
+
+        set /p ="Creating file 'extensions.json'... " <nul
+        echo {>> %VSCODE_DIR%\extensions.json
+        echo    "recommendations": [>> %VSCODE_DIR%\extensions.json
+        echo        "Dart-Code.dart-code">> %VSCODE_DIR%\extensions.json
+        echo    ]>> %VSCODE_DIR%\extensions.json
+        echo }>> %VSCODE_DIR%\extensions.json
+        echo File created.
+
+    @REM ::)
+
+    @REM ::installing dart extension(
+
+        echo Installing Dart extension...
+        code --install-extension Dart-Code.dart-code 2> nul
+
+    @REM ::)
+
     echo.
-    powershell -Command "Expand-Archive -Path 'dartsdk-windows-x64-release.zip' -DestinationPath '%CD%'"
-    cls
 
-    echo Removing 'dartsdk-windows-x64-release.zip'...
-    del /q /s dartsdk-windows-x64-release.zip > nul
-    cls
+    echo VS Code configured succesfully.
 
-    goto Validate_Archives
-
-) else (
-    echo Dart SDK Found.
-)
-
-set /p ="Searching for 'vscode'... " <nul
-
-if not exist "%VSCODE_DIR%" (
-    echo VSCode folder not found.
-    echo Creating folder 'vscode'...
-    mkdir "%VSCODE_DIR%"
-    
-    echo Creating 'settings.json'...
-    echo {>> "%VSCODE_DIR%\settings.json"
-    echo    "dart.cliConsole": "externalTerminal",>> "%VSCODE_DIR%\settings.json"
-    echo    "dart.sdkPath": "%CURR_DIR%\\%DART_SDK_DIR%">> "%VSCODE_DIR%\settings.json"
-    echo }>> "%VSCODE_DIR%\settings.json"
-
-    echo Creating 'extensions.json'
-    echo {>> "%VSCODE_DIR%\extensions.json"
-    echo    "recommendations": [>> "%VSCODE_DIR%\extensions.json"
-    echo        "Dart-Code.dart-code">> "%VSCODE_DIR%\extensions.json"
-    echo    ]>> "%VSCODE_DIR%\extensions.json"
-    echo }>> "%VSCODE_DIR%\extensions.json"
-
-    cls
-
-    goto Validate_Archives
-
-) else (
-    echo VSCode Folder Found.
-)
-
-echo.
-set /p PROJECT_NAME=Insert your project name: 
-
-if not exist "projects" (
-    mkdir "projects"
-)
-
-set PROJECT_DIR="projects\%PROJECT_NAME%"
-
-echo.
-echo Creating project '%PROJECT_NAME%'...
-%DART_EXE% create "%PROJECT_DIR%" > nul
-
-echo Project '%PROJECT_NAME%' created.
-
-echo.
-
-echo Configuring project '%PROJECT_NAME%'...
-rmdir /q /s "%PROJECT_DIR%\test"
-rmdir /q /s "%PROJECT_DIR%\lib"
-rmdir /q /s "%PROJECT_DIR%\bin"
-
-del /q /s "%PROJECT_DIR%\README.md" > nul
-del /q /s "%PROJECT_DIR%\CHANGELOG.md" > nul
-del /q /s "%PROJECT_DIR%\pubspec.lock" > nul
-del /q /s "%PROJECT_DIR%\.gitignore" > nul
-
-mkdir "%PROJECT_DIR%\bin"
-
-echo void main() {>> "%PROJECT_DIR%\bin\%PROJECT_NAME%.dart"
-echo     print('Hello, Dart!');>> "%PROJECT_DIR%\bin\%PROJECT_NAME%.dart"
-echo }>> "%PROJECT_DIR%\bin\%PROJECT_NAME%.dart"
-
-mkdir "%PROJECT_DIR%\.vscode"
-xcopy "%VSCODE_DIR%" "%PROJECT_DIR%\.vscode" /E /I /H /Y > nul
-
-echo Project '%PROJECT_NAME%' configured.
+@REM ::)
 
 echo.
 
@@ -108,7 +201,7 @@ echo.
 set /p OPEN_PROJECT=Do you want to open your project in VS Code? [Y/N]: 
 
 if /I "!OPEN_PROJECT!"=="Y" (
-    code "%PROJECT_DIR%"
+    code %PROJECT_DIR%
     exit
 ) else if /I "!OPEN_PROJECT!"=="N" (
     exit
