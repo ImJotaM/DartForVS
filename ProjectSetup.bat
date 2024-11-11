@@ -197,6 +197,11 @@ echo.
 
     @REM ::)
 
+    set /p ="Creating file 'OpenProject.bat'... | " <nul
+    echo @echo off >> %PROJECT_DIR%\OpenProject.bat
+    echo code .\>> %PROJECT_DIR%\OpenProject.bat
+    echo File created.
+
     @REM ::installing dart extension(
 
         set /p ="Installing Dart extension... | " <nul
