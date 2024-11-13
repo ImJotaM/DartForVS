@@ -197,10 +197,14 @@ echo.
 
     @REM ::)
 
-    set /p ="Creating file 'OpenProject.bat'... | " <nul
-    echo @echo off >> %PROJECT_DIR%\OpenProject.bat
-    echo code .\>> %PROJECT_DIR%\OpenProject.bat
-    echo File created.
+    @REM ::OpenProject.bat(
+
+        set /p ="Creating file 'OpenProject.bat'... | " <nul
+        echo @echo off >> %PROJECT_DIR%\OpenProject.bat
+        echo code .\ > nul>> %PROJECT_DIR%\OpenProject.bat
+        echo File created.
+        
+    @REM ::)
 
     @REM ::installing dart extension(
 
@@ -250,7 +254,7 @@ set /p OPEN_PROJECT=Do you want to open your project in VS Code? [Y/N]:
     
     if /I "!OPEN_PROJECT!"=="Y" (
 
-        code %PROJECT_DIR%
+        code %PROJECT_DIR% > nul
         exit
 
     ) else if /I "!OPEN_PROJECT!"=="N" (
